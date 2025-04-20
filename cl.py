@@ -19,14 +19,57 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
-with open("client_set","r") as file_client_set:
-        f=file_client_set.readlines()
-        test_link_=f[14].strip()
 TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
+CONFIG_PATH = "config.json"
+
+# --- خواندن کانفیگ از JSON ---
+try:
+    # اطمینان از وجود فایل کانفیگ یا ایجاد دیفالت
+    if not os.path.exists(CONFIG_PATH):
+        print(f"WARN: Configuration file {CONFIG_PATH} not found. Creating default.")
+        default_config = {
+            "core": {
+              "test_url": "http://www.gstatic.com/generate_204",
+              "log_level": "warning",
+              "domain_strategy": "IPIFNonMatch",
+              "allow_insecure_tls": False,
+              "sniffing_enabled": True,
+              "inbound_ports": { "socks": 10808, "http": 10809 },
+              "dns": {
+                "enabled": True, "fake_dns_enabled": True, "local_port": 10853,
+                "remote_server": "https://8.8.8.8/dns-query", "domestic_server": "1.1.1.2"
+              },
+              "routing_rules": { "proxy": [], "direct": [], "block": [] },
+              "fragment": { "enabled": True, "packets": "tlshello", "length": "10-30", "interval": "1-5" },
+              "fake_host": { "enabled": False, "domain": "cloudflare.com" },
+              "mux": { "enabled": False, "concurrency": 8 }
+            },
+            "warp_on_warp": { "enabled": False, "config_url": "" }
+          }
+        with open(CONFIG_PATH, "w", encoding='utf-8') as f_default:
+            json.dump(default_config, f_default, indent=2)
+        config_data = default_config
+        print(f"INFO: Default configuration file created at {CONFIG_PATH}")
+    else:
+        with open(CONFIG_PATH, "r", encoding='utf-8') as f:
+            config_data = json.load(f)
+            print(f"INFO: Configuration loaded from {CONFIG_PATH}")
+except Exception as E:
+    print(E)
+
+# --- استخراج تنظیمات اصلی ---
+core_settings = config_data.get("core", {})
+warp_settings = config_data.get("warp_on_warp", {})
+
+# --- تعریف متغیرهای گلوبال مورد نیاز از کانفیگ ---
+# test_link_ رو اینجا تعریف می‌کنیم تا در کل اسکریپت قابل استفاده باشه
+test_link_ = core_settings.get("test_url", "http://www.gstatic.com/generate_204")
+is_use_freg = core_settings.get("fragment", {}).get("enabled", True) # مقدار اولیه is_use_freg
+is_use_warp = warp_settings.get("enabled", False) # مقدار اولیه is_use_warp
+
 def remove_empty_strings(input_list):
-    # این تابع خطوطی که فقط newline هستن ('\n') یا رشته خالی هستن رو حذف می‌کنه
     return [item for item in input_list if item and item != "\n" ]
 with open(TEXT_PATH,"r") as f:
     conf=remove_empty_strings(f.readlines())
@@ -36,8 +79,8 @@ class ProcessManager:
     Ensures proper termination on Linux systems using SIGTERM and SIGKILL.
     """
     def __init__(self):
-        self.active_processes = {}  # دیکشنری برای نگهداری نام پردازش و PID آن
-        self.lock = threading.Lock() # برای جلوگیری از تداخل در دسترسی به دیکشنری از تردها
+        self.active_processes = {}
+        self.lock = threading.Lock()
         print("ProcessManager initialized.")
     def add_process(self, name: str, pid: int):
         """یک پردازش جدید را به لیست مدیریت‌شده اضافه می‌کند."""
@@ -51,53 +94,40 @@ class ProcessManager:
         pid_to_stop = None
         with self.lock:
             if name in self.active_processes:
-                # PID را دریافت کرده و بلافاصله از دیکشنری حذف می‌کنیم تا دوباره تلاش نشود
                 pid_to_stop = self.active_processes.pop(name)
                 print(f"Attempting to stop process '{name}' with PID {pid_to_stop}. Removed from tracking list.")
             else:
                 print(f"Process '{name}' not found in active processes list for stopping.")
-                return # پردازشی با این نام برای توقف وجود ندارد
+                return
         if pid_to_stop is None:
-             # این حالت نباید رخ دهد اما برای اطمینان بررسی می‌شود
              print(f"Error: Could not retrieve PID for '{name}' despite being found initially.")
              return
         try:
-            # ابتدا بررسی می‌کنیم آیا پردازش هنوز وجود دارد
             if psutil.pid_exists(pid_to_stop):
                 print(f"  Sending SIGTERM (polite request) to PID {pid_to_stop}...")
                 os.kill(pid_to_stop, signal.SIGTERM)
-                # کمی صبر می‌کنیم تا پردازش فرصت خاتمه‌ی آرام داشته باشد
-                time.sleep(1) # می‌توانید این زمان را در صورت نیاز تنظیم کنید
-                # دوباره بررسی می‌کنیم
+                time.sleep(1)
                 if psutil.pid_exists(pid_to_stop):
                     print(f"  PID {pid_to_stop} still exists after SIGTERM. Sending SIGKILL (force kill)...")
                     os.kill(pid_to_stop, signal.SIGKILL)
-                    time.sleep(0.1) # انتظار کوتاه بعد از SIGKILL
-                    # بررسی نهایی
+                    time.sleep(0.1)
                     if psutil.pid_exists(pid_to_stop):
-                        # اگر حتی بعد از SIGKILL هم وجود داشت، مشکلی وجود دارد
                         print(f"  WARNING: PID {pid_to_stop} could not be terminated even with SIGKILL!")
                     else:
                         print(f"  PID {pid_to_stop} terminated successfully by SIGKILL.")
                 else:
                     print(f"  PID {pid_to_stop} terminated gracefully by SIGTERM.")
             else:
-                # اگر قبل از تلاش ما از بین رفته بود
                 print(f"  Process with PID {pid_to_stop} was already gone before stop attempt.")
         except (ProcessLookupError, psutil.NoSuchProcess):
-            # اگر بین بررسی وجود و ارسال سیگنال، پردازش از بین برود
             print(f"  Process with PID {pid_to_stop} disappeared during termination attempt.")
         except PermissionError:
-            # اگر اسکریپت اجازه‌ی ارسال سیگنال به آن PID را نداشته باشد (کمتر محتمل است)
             print(f"  ERROR: Permission denied to send signal to PID {pid_to_stop}.")
-            # شاید لازم باشد PID را دوباره به لیست برگردانیم؟ فعلا نه.
         except Exception as e:
-            # برای خطاهای غیرمنتظره دیگر
             print(f"  ERROR: An unexpected error occurred while stopping PID {pid_to_stop}: {e}")
     def stop_all(self):
         """تمام پردازش‌های مدیریت‌شده را متوقف می‌کند."""
         print("Stopping all tracked processes...")
-        # یک کپی از نام‌ها می‌گیریم تا هنگام پیمایش، دیکشنری تغییر نکند
         names_to_stop = []
         with self.lock:
              names_to_stop = list(self.active_processes.keys())
@@ -106,12 +136,12 @@ class ProcessManager:
             return
         print(f"Found {len(names_to_stop)} processes to stop: {names_to_stop}")
         for name in names_to_stop:
-             # تابع stop_process خودش قفل‌گذاری و حذف از لیست را انجام می‌دهد
              self.stop_process(name)
         print("Finished stopping all tracked processes.")
 process_manager = ProcessManager()
 xray_abs="xray/xray"
 def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # nuitka: pragma: no cover
+    global config_data
     @dataclass
     class ConfigParams:
         protocol: str
@@ -368,51 +398,42 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     TLS = "tls"
     REALITY = "reality"
     HTTP = "http"
-    with open("fragment_set", "r") as f:
-        list_freg=f.readlines()
-        list_freg=remove_empty_strings(list_freg)
-        list_freg=[line.strip() for line in list_freg]
-    PACKETS=list_freg[0]
-    LENGTH=list_freg[1]
-    INTERVAL=list_freg[2]
-    if list_freg[3]=="false":
-        FAKEHOST_ENABLE=False
-    else:
-        FAKEHOST_ENABLE=True
-        HOST1_DOMAIN=list_freg[4]
-        HOST2_DOMAIN=list_freg[4]
-    if list_freg[5]=="false":
-        MUX_ENABLE=False
-    else:
-        MUX_ENABLE=True
-    CONCURRENCY=int(list_freg[6])
-    if list_freg[7]=="false":
-        FRAGMENT=False
-    else:
-        FRAGMENT=True
-    if list_freg[8]=="false":
-        IS_WARP_ON_WARP=False
-    else:
-        IS_WARP_ON_WARP=True
-        WARPONWARP=urllib.parse.unquote(list_freg[9])
-    with open("client_set","r") as f:
-        client_set=f.readlines()
-        client_set=remove_empty_strings(client_set)
-        client_set=[line.strip() for line in client_set]
-    ENABLELOCALDNS=client_set[1]=="true"
-    ENABLEFAKEDNS=client_set[2]=="true"
-    LOCALDNSPORT=client_set[3]
-    ALLOWINCREASE=client_set[4]=="true"
-    DOMAINSTRATEGY=client_set[5]
-    CUSTOMRULES_PROXY=client_set[6].split(",")
-    CUSTOMRULES_DIRECT=client_set[7].split(",")
-    CUSTOMRULES_BLOCKED=client_set[8].split(",")
-    SOCKS5=int(client_set[9])
-    HTTP5=int(client_set[10])
-    REMOTEDNS=client_set[11]
-    DOMESTICDNS=client_set[12]
-    LOGLEVEL=client_set[13]
-    SNIFFING=client_set[15] =="true"
+    core_sets = config_data.get("core", {})
+    warp_sets = config_data.get("warp_on_warp", {})
+    fragment_sets = core_sets.get("fragment", {})
+    fake_host_sets = core_sets.get("fake_host", {})
+    mux_sets = core_sets.get("mux", {})
+    dns_sets = core_sets.get("dns", {})
+    routing_sets = core_sets.get("routing_rules", {})
+    inbound_ports = core_sets.get("inbound_ports", {})
+
+    # --- استخراج مقادیر تنظیمات ---
+    PACKETS = fragment_sets.get("packets", "tlshello")
+    LENGTH = fragment_sets.get("length", "10-30") # دیفالت از JSON
+    INTERVAL = fragment_sets.get("interval", "1-5") # دیفالت از JSON
+    FAKEHOST_ENABLE = fake_host_sets.get("enabled", False)
+    HOST1_DOMAIN = fake_host_sets.get("domain", "cloudflare.com")
+    HOST2_DOMAIN = HOST1_DOMAIN
+    MUX_ENABLE = mux_sets.get("enabled", False)
+    CONCURRENCY = mux_sets.get("concurrency", 8)
+    FRAGMENT = fragment_sets.get("enabled", True)
+    IS_WARP_ON_WARP = warp_sets.get("enabled", False)
+    WARPONWARP = warp_sets.get("config_url", "")
+
+    ENABLELOCALDNS = dns_sets.get("enabled", True)
+    ENABLEFAKEDNS = dns_sets.get("fake_dns_enabled", True)
+    LOCALDNSPORT = dns_sets.get("local_port", 10853)
+    ALLOWINCREASE = core_sets.get("allow_insecure_tls", False)
+    DOMAINSTRATEGY = core_sets.get("domain_strategy", "IPIFNonMatch")
+    CUSTOMRULES_PROXY = routing_sets.get("proxy", [])
+    CUSTOMRULES_DIRECT = routing_sets.get("direct", [])
+    CUSTOMRULES_BLOCKED = routing_sets.get("block", [])
+    SOCKS5 = inbound_ports.get("socks", 10808)
+    HTTP5 = inbound_ports.get("http", 10809)
+    REMOTEDNS = dns_sets.get("remote_server", "https://8.8.8.8/dns-query")
+    DOMESTICDNS = dns_sets.get("domestic_server", "1.1.1.2")
+    LOGLEVEL = core_sets.get("log_level", "warning")
+    SNIFFING = core_sets.get("sniffing_enabled", True)
     is_warp=False
     class V2rayConfig:
         def __init__(self, remarks: Optional[str] = None, stats: Optional[Any] = None, log: 'LogBean' = None,
