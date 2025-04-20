@@ -18,6 +18,7 @@ import logging
 import base64
 import urllib.parse
 import urllib.request
+import signal
 with open("client_set","r") as file_client_set:
         f=file_client_set.readlines()
         test_link_=f[14].strip()
@@ -29,22 +30,96 @@ def remove_empty_strings(input_list):
 with open(TEXT_PATH,"r") as f:
     conf=remove_empty_strings(f.readlines())
 class ProcessManager:
+    """
+    Manages background processes (like Xray, Hysteria) started by the script.
+    Ensures proper termination on Linux systems using SIGTERM and SIGKILL.
+    """
     def __init__(self):
-        self.active_processes = {}
-        self.lock = threading.Lock()
-    def add_process(self, name, pid):
-        with self.lock:
-            self.active_processes[name] = pid
-    def stop_process(self, name):
+        self.active_processes = {}  # دیکشنری برای نگهداری نام پردازش و PID آن
+        self.lock = threading.Lock() # برای جلوگیری از تداخل در دسترسی به دیکشنری از تردها
+        print("ProcessManager initialized.")
+
+    def add_process(self, name: str, pid: int):
+        """یک پردازش جدید را به لیست مدیریت‌شده اضافه می‌کند."""
         with self.lock:
             if name in self.active_processes:
-                pid = self.active_processes[name]
-                try:
-                    if psutil.pid_exists(pid):
-                        subprocess.call(["taskkill", "/F", "/PID", str(pid)])
-                except (ProcessLookupError, psutil.NoSuchProcess):
-                    pass
-                del self.active_processes[name]
+                print(f"Warning: Process name '{name}' already exists with PID {self.active_processes[name]}. Overwriting with new PID {pid}.")
+            print(f"Tracking process '{name}' with PID {pid}.")
+            self.active_processes[name] = pid
+
+    def stop_process(self, name: str):
+        """یک پردازش مشخص را با نام آن متوقف می‌کند."""
+        pid_to_stop = None
+        with self.lock:
+            if name in self.active_processes:
+                # PID را دریافت کرده و بلافاصله از دیکشنری حذف می‌کنیم تا دوباره تلاش نشود
+                pid_to_stop = self.active_processes.pop(name)
+                print(f"Attempting to stop process '{name}' with PID {pid_to_stop}. Removed from tracking list.")
+            else:
+                print(f"Process '{name}' not found in active processes list for stopping.")
+                return # پردازشی با این نام برای توقف وجود ندارد
+
+        if pid_to_stop is None:
+             # این حالت نباید رخ دهد اما برای اطمینان بررسی می‌شود
+             print(f"Error: Could not retrieve PID for '{name}' despite being found initially.")
+             return
+
+        try:
+            # ابتدا بررسی می‌کنیم آیا پردازش هنوز وجود دارد
+            if psutil.pid_exists(pid_to_stop):
+                print(f"  Sending SIGTERM (polite request) to PID {pid_to_stop}...")
+                os.kill(pid_to_stop, signal.SIGTERM)
+
+                # کمی صبر می‌کنیم تا پردازش فرصت خاتمه‌ی آرام داشته باشد
+                time.sleep(0.5) # می‌توانید این زمان را در صورت نیاز تنظیم کنید
+
+                # دوباره بررسی می‌کنیم
+                if psutil.pid_exists(pid_to_stop):
+                    print(f"  PID {pid_to_stop} still exists after SIGTERM. Sending SIGKILL (force kill)...")
+                    os.kill(pid_to_stop, signal.SIGKILL)
+                    time.sleep(0.1) # انتظار کوتاه بعد از SIGKILL
+
+                    # بررسی نهایی
+                    if psutil.pid_exists(pid_to_stop):
+                        # اگر حتی بعد از SIGKILL هم وجود داشت، مشکلی وجود دارد
+                        print(f"  WARNING: PID {pid_to_stop} could not be terminated even with SIGKILL!")
+                    else:
+                        print(f"  PID {pid_to_stop} terminated successfully by SIGKILL.")
+                else:
+                    print(f"  PID {pid_to_stop} terminated gracefully by SIGTERM.")
+            else:
+                # اگر قبل از تلاش ما از بین رفته بود
+                print(f"  Process with PID {pid_to_stop} was already gone before stop attempt.")
+
+        except (ProcessLookupError, psutil.NoSuchProcess):
+            # اگر بین بررسی وجود و ارسال سیگنال، پردازش از بین برود
+            print(f"  Process with PID {pid_to_stop} disappeared during termination attempt.")
+        except PermissionError:
+            # اگر اسکریپت اجازه‌ی ارسال سیگنال به آن PID را نداشته باشد (کمتر محتمل است)
+            print(f"  ERROR: Permission denied to send signal to PID {pid_to_stop}.")
+            # شاید لازم باشد PID را دوباره به لیست برگردانیم؟ فعلا نه.
+        except Exception as e:
+            # برای خطاهای غیرمنتظره دیگر
+            print(f"  ERROR: An unexpected error occurred while stopping PID {pid_to_stop}: {e}")
+
+    def stop_all(self):
+        """تمام پردازش‌های مدیریت‌شده را متوقف می‌کند."""
+        print("Stopping all tracked processes...")
+        # یک کپی از نام‌ها می‌گیریم تا هنگام پیمایش، دیکشنری تغییر نکند
+        names_to_stop = []
+        with self.lock:
+             names_to_stop = list(self.active_processes.keys())
+
+        if not names_to_stop:
+            print("No active processes were being tracked.")
+            return
+
+        print(f"Found {len(names_to_stop)} processes to stop: {names_to_stop}")
+        for name in names_to_stop:
+             # تابع stop_process خودش قفل‌گذاری و حذف از لیست را انجام می‌دهد
+             self.stop_process(name)
+
+        print("Finished stopping all tracked processes.")
 process_manager = ProcessManager()
 xray_abs="xray/xray"
 
@@ -1383,6 +1458,7 @@ with open(FIN_PATH,"w") as f:
             json.dump(FIN_CONF,f)
         else:
             f.writelines(FIN_CONF)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error writing to {FIN_PATH}: {e}")
+
 exit()
