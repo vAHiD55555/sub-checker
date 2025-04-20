@@ -1371,8 +1371,9 @@ def ping_all():
                     f.write(parse_configs(i, cv=t+2, hy2_path=hy2_path_test_file))
                 else:
                     json.dump(update_ip_addresses(i, t+2), f)
-            except Exception:
+            except Exception as E:
                 is_wrong = True
+                print(E)
         if not is_wrong:
             with open(path_test_file, "r") as f:
                 temp3 = json.load(f)
