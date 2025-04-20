@@ -125,6 +125,7 @@ class ProcessManager:
 process_manager = ProcessManager()
 xray_abs="xray/xray"
 def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # nuitka: pragma: no cover
+    global settings
     @dataclass
     class ConfigParams:
         protocol: str
@@ -389,33 +390,30 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     dns_sets = core_sets.get("dns", {})
     routing_sets = core_sets.get("routing_rules", {})
     inbound_ports = core_sets.get("inbound_ports", {})
-
-    # --- استخراج مقادیر تنظیمات ---
-    # مقادیر پیش‌فرض برای جلوگیری از خطا اگر کلیدی موجود نباشد
     PACKETS = fragment_sets.get("packets", "tlshello")
-    LENGTH = fragment_sets.get("length", "10-20")
-    INTERVAL = fragment_sets.get("interval", "10")
+    LENGTH = fragment_sets.get("length", "10-30")
+    INTERVAL = fragment_sets.get("interval", "1-5")
     FAKEHOST_ENABLE = fake_host_sets.get("enabled", False)
-    HOST1_DOMAIN = fake_host_sets.get("domain", "example.com")
-    HOST2_DOMAIN = HOST1_DOMAIN # فرض می‌کنیم یکی هستند
-    MUX_ENABLE = mux_sets.get("enabled", True)
+    HOST1_DOMAIN = fake_host_sets.get("domain", "cloudflare.com")
+    HOST2_DOMAIN = HOST1_DOMAIN
+    MUX_ENABLE = mux_sets.get("enabled", False)
     CONCURRENCY = mux_sets.get("concurrency", 8)
-    FRAGMENT = fragment_sets.get("enabled", False)
+    FRAGMENT = fragment_sets.get("enabled", True)
     IS_WARP_ON_WARP = warp_sets.get("enabled", False)
     WARPONWARP = warp_sets.get("config_url", "")
 
     ENABLELOCALDNS = dns_sets.get("enabled", True)
-    ENABLEFAKEDNS = dns_sets.get("fake_dns_enabled", False)
-    LOCALDNSPORT = dns_sets.get("local_port", 5353)
+    ENABLEFAKEDNS = dns_sets.get("fake_dns_enabled", True)
+    LOCALDNSPORT = dns_sets.get("local_port", 10803)
     ALLOWINCREASE = core_sets.get("allow_insecure_tls", False)
-    DOMAINSTRATEGY = core_sets.get("domain_strategy", "AsIs")
+    DOMAINSTRATEGY = core_sets.get("domain_strategy", "IPIFNonMatch")
     CUSTOMRULES_PROXY = routing_sets.get("proxy", [])
     CUSTOMRULES_DIRECT = routing_sets.get("direct", [])
     CUSTOMRULES_BLOCKED = routing_sets.get("block", [])
     SOCKS5 = inbound_ports.get("socks", 10808)
     HTTP5 = inbound_ports.get("http", 10809)
-    REMOTEDNS = dns_sets.get("remote_server", "https://1.1.1.1/dns-query")
-    DOMESTICDNS = dns_sets.get("domestic_server", "https://223.5.5.5/dns-query")
+    REMOTEDNS = dns_sets.get("remote_server", "https://8.8.8.8/dns-query")
+    DOMESTICDNS = dns_sets.get("domestic_server", "1.1.1.2")
     LOGLEVEL = core_sets.get("log_level", "warning")
     SNIFFING = core_sets.get("sniffing_enabled", True)
     is_warp=False
