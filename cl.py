@@ -19,14 +19,12 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
-CONF_PATH="config.json"
+with open("client_set","r") as file_client_set:
+        f=file_client_set.readlines()
+        test_link_=f[14].strip()
 TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
-with open(CONF_PATH,"r") as f:
-    file=json.load(f)
-    test_link_=file["core"]["test_url"]
-
 def remove_empty_strings(input_list):
     return [item for item in input_list if item and item != "\n" ]
 with open(TEXT_PATH,"r") as f:
@@ -355,54 +353,51 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     TLS = "tls"
     REALITY = "reality"
     HTTP = "http"
-    with open(CONF_PATH,"r") as f:
-        file=json.load(f)
-    core=file['core']
-    warp_sets = file['warp_on_warp']
-    fragment_sets=core["fragment"]
-    fake_host_sets =core["fake_host"]
-    mux_sets= core["mux"]
-    dns_sets = core["dns"]
-    routing_sets = core["routing_rules"]
-    inbound_ports = core["inbound_ports"]
-    PACKETS=fragment_sets["packets"]
-    LENGTH=fragment_sets["length"]
-    INTERVAL=fragment_sets["interval"]
-    if fake_host_sets["enabled"]:
+    with open("fragment_set", "r") as f:
+        list_freg=f.readlines()
+        list_freg=remove_empty_strings(list_freg)
+        list_freg=[line.strip() for line in list_freg]
+    PACKETS=list_freg[0]
+    LENGTH=list_freg[1]
+    INTERVAL=list_freg[2]
+    if list_freg[3]=="false":
         FAKEHOST_ENABLE=False
     else:
         FAKEHOST_ENABLE=True
-        HOST1_DOMAIN=fake_host_sets["domain"]
-        HOST2_DOMAIN=HOST1_DOMAIN
-    if mux_sets["enabled"]:
+        HOST1_DOMAIN=list_freg[4]
+        HOST2_DOMAIN=list_freg[4]
+    if list_freg[5]=="false":
         MUX_ENABLE=False
     else:
         MUX_ENABLE=True
-    CONCURRENCY=mux_sets["concurrency"]
-    if fragment_sets["enabled"]:
+    CONCURRENCY=int(list_freg[6])
+    if list_freg[7]=="false":
         FRAGMENT=False
     else:
         FRAGMENT=True
-    if warp_sets["enabled"]:
+    if list_freg[8]=="false":
         IS_WARP_ON_WARP=False
     else:
         IS_WARP_ON_WARP=True
-        WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
-    ENABLELOCALDNS = dns_sets["enabled"]
-    ENABLEFAKEDNS = dns_sets["fake_dns_enabled"]
-    LOCALDNSPORT = dns_sets["local_port"]
-    ALLOWINCREASE = core["allow_insecure_tls"]
-    DOMAINSTRATEGY = core["domain_strategy"]
-    CUSTOMRULES_PROXY = routing_sets["proxy",]
-    CUSTOMRULES_DIRECT = routing_sets["direct"]
-    CUSTOMRULES_BLOCKED = routing_sets["block"]
-    SOCKS5 = inbound_ports["socks"]
-    HTTP5 = inbound_ports["http"]
-    REMOTEDNS = dns_sets["remote_server"]
-    DOMESTICDNS = dns_sets["domestic_server"]
-    LOGLEVEL = core["log_level"]
-    SNIFFING = core["sniffing_enabled"]
-
+        WARPONWARP=urllib.parse.unquote(list_freg[9])
+    with open("client_set","r") as f:
+        client_set=f.readlines()
+        client_set=remove_empty_strings(client_set)
+        client_set=[line.strip() for line in client_set]
+    ENABLELOCALDNS=client_set[1]=="true"
+    ENABLEFAKEDNS=client_set[2]=="true"
+    LOCALDNSPORT=client_set[3]
+    ALLOWINCREASE=client_set[4]=="true"
+    DOMAINSTRATEGY=client_set[5]
+    CUSTOMRULES_PROXY=client_set[6].split(",")
+    CUSTOMRULES_DIRECT=client_set[7].split(",")
+    CUSTOMRULES_BLOCKED=client_set[8].split(",")
+    SOCKS5=int(client_set[9])
+    HTTP5=int(client_set[10])
+    REMOTEDNS=client_set[11]
+    DOMESTICDNS=client_set[12]
+    LOGLEVEL=client_set[13]
+    SNIFFING=client_set[15] =="true"
     is_warp=False
     class V2rayConfig:
         def __init__(self, remarks: Optional[str] = None, stats: Optional[Any] = None, log: 'LogBean' = None,
