@@ -19,9 +19,9 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
-with open("client_set","r") as file_client_set:
-        f=file_client_set.readlines()
-        test_link_=f[14].strip()
+with open("config.json","r") as file_client_set:
+        f=json.load(file_client_set)
+        test_link_=f["core"]["test_url"]
 TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
