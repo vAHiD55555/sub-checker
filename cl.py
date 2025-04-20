@@ -19,7 +19,6 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
-cn=0
 with open("client_set","r") as file_client_set:
         f=file_client_set.readlines()
         test_link_=f[14].strip()
@@ -68,7 +67,7 @@ class ProcessManager:
                 print(f"  Sending SIGTERM (polite request) to PID {pid_to_stop}...")
                 os.kill(pid_to_stop, signal.SIGTERM)
                 # کمی صبر می‌کنیم تا پردازش فرصت خاتمه‌ی آرام داشته باشد
-                time.sleep(0.5) # می‌توانید این زمان را در صورت نیاز تنظیم کنید
+                time.sleep(1) # می‌توانید این زمان را در صورت نیاز تنظیم کنید
                 # دوباره بررسی می‌کنیم
                 if psutil.pid_exists(pid_to_stop):
                     print(f"  PID {pid_to_stop} still exists after SIGTERM. Sending SIGKILL (force kill)...")
@@ -1378,8 +1377,6 @@ def ping_all():
             return value
         return {key: update_value(value) for key, value in input_dict.items()}
     def process_ping(i:str, t,counter=2) :
-        global cn
-        cn+=1
         print(i)
         path_test_file=f"xray/config_test_ping{'' if t==0 else str(t)}.json"
         hy2_path_test_file=f"hy2/config{'' if t==0 else str(t)}.yaml"
@@ -1444,7 +1441,6 @@ def ping_all():
     copy_in_sus_nms=sun_nms
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(process_ping, i, t) for t, i in enumerate(sun_nms)]
-    print("ifin: " + str(cn))
     if is_dict:
         with open(TEXT_PATH, "w") as f:
             json.dump(copy_in_sus_nms, f, indent=2, ensure_ascii=False)
