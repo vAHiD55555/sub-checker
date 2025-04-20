@@ -19,7 +19,7 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
-TH_MAX_WORKER=1
+TH_MAX_WORKER=5
 CONF_PATH="config.json"
 with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
@@ -1327,7 +1327,7 @@ def ping_all():
     print("igo")
     xray_abs = os.path.abspath("xray/xray")
     def s_xray(conf_path,t):
-        proc=subprocess.Popen([xray_abs, 'run', '-c', conf_path])
+        proc=subprocess.Popen([xray_abs, 'run', '-c', conf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process_manager.add_process(f"xray_{t}", proc.pid)
     def s_hy2(path_file,t):
         hy=subprocess.Popen (['hy2/hysteria', 'client' ,'-c' , path_file], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
