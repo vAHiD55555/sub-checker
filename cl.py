@@ -19,6 +19,7 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
+TH_MAX_WORKER=1
 CONF_PATH="config.json"
 with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
@@ -1421,7 +1422,7 @@ def ping_all():
             process_manager.stop_process(f"xray_{t}")
     sun_nms, is_dict = load_config()
     copy_in_sus_nms=sun_nms
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=TH_MAX_WORKER) as executor:
         futures = [executor.submit(process_ping, i, t) for t, i in enumerate(sun_nms)]
     if is_dict:
         with open(TEXT_PATH, "w") as f:
