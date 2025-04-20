@@ -1443,7 +1443,7 @@ def ping_all():
             process_manager.stop_process(f"xray_{t}")
     sun_nms, is_dict = load_config()
     copy_in_sus_nms=sun_nms
-    with ThreadPoolExecutor(max_workers=50) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(process_ping, i, t) for t, i in enumerate(sun_nms)]
     if is_dict:
         with open(TEXT_PATH, "w") as f:
