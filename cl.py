@@ -19,25 +19,12 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
+with open("client_set","r") as file_client_set:
+        f=file_client_set.readlines()
+        test_link_=f[14].strip()
 TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
-CONFIG_PATH="config.json"
 FIN_CONF=[]
-try:
-    with open(CONFIG_PATH, "r") as f:
-        settings = json.load(f)
-except FileNotFoundError:
-    print(f"ERROR: Configuration file not found at {CONFIG_PATH}")
-    sys.exit(1)
-except json.JSONDecodeError as e:
-    print(f"ERROR: Invalid JSON in configuration file {CONFIG_PATH}: {e}")
-    sys.exit(1)
-except Exception as e:
-    print(f"ERROR: Could not read configuration file {CONFIG_PATH}: {e}")
-    sys.exit(1)
-core_settings = settings.get("core", {})
-warp_settings = settings.get("warp_on_warp", {})
-test_link_ = core_settings.get("test_url", "http://www.gstatic.com/generate_204")
 def remove_empty_strings(input_list):
     # این تابع خطوطی که فقط newline هستن ('\n') یا رشته خالی هستن رو حذف می‌کنه
     return [item for item in input_list if item and item != "\n" ]
@@ -125,7 +112,6 @@ class ProcessManager:
 process_manager = ProcessManager()
 xray_abs="xray/xray"
 def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # nuitka: pragma: no cover
-    global settings
     @dataclass
     class ConfigParams:
         protocol: str
@@ -382,40 +368,51 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     TLS = "tls"
     REALITY = "reality"
     HTTP = "http"
-    core_sets = settings.get("core", {})
-    warp_sets = settings.get("warp_on_warp", {})
-    fragment_sets = core_sets.get("fragment", {})
-    fake_host_sets = core_sets.get("fake_host", {})
-    mux_sets = core_sets.get("mux", {})
-    dns_sets = core_sets.get("dns", {})
-    routing_sets = core_sets.get("routing_rules", {})
-    inbound_ports = core_sets.get("inbound_ports", {})
-    PACKETS = fragment_sets.get("packets", "tlshello")
-    LENGTH = fragment_sets.get("length", "10-30")
-    INTERVAL = fragment_sets.get("interval", "1-5")
-    FAKEHOST_ENABLE = fake_host_sets.get("enabled", False)
-    HOST1_DOMAIN = fake_host_sets.get("domain", "cloudflare.com")
-    HOST2_DOMAIN = HOST1_DOMAIN
-    MUX_ENABLE = mux_sets.get("enabled", False)
-    CONCURRENCY = mux_sets.get("concurrency", 8)
-    FRAGMENT = fragment_sets.get("enabled", True)
-    IS_WARP_ON_WARP = warp_sets.get("enabled", False)
-    WARPONWARP = warp_sets.get("config_url", "")
-
-    ENABLELOCALDNS = dns_sets.get("enabled", True)
-    ENABLEFAKEDNS = dns_sets.get("fake_dns_enabled", True)
-    LOCALDNSPORT = dns_sets.get("local_port", 10803)
-    ALLOWINCREASE = core_sets.get("allow_insecure_tls", False)
-    DOMAINSTRATEGY = core_sets.get("domain_strategy", "IPIFNonMatch")
-    CUSTOMRULES_PROXY = routing_sets.get("proxy", [])
-    CUSTOMRULES_DIRECT = routing_sets.get("direct", [])
-    CUSTOMRULES_BLOCKED = routing_sets.get("block", [])
-    SOCKS5 = inbound_ports.get("socks", 10808)
-    HTTP5 = inbound_ports.get("http", 10809)
-    REMOTEDNS = dns_sets.get("remote_server", "https://8.8.8.8/dns-query")
-    DOMESTICDNS = dns_sets.get("domestic_server", "1.1.1.2")
-    LOGLEVEL = core_sets.get("log_level", "warning")
-    SNIFFING = core_sets.get("sniffing_enabled", True)
+    with open("fragment_set", "r") as f:
+        list_freg=f.readlines()
+        list_freg=remove_empty_strings(list_freg)
+        list_freg=[line.strip() for line in list_freg]
+    PACKETS=list_freg[0]
+    LENGTH=list_freg[1]
+    INTERVAL=list_freg[2]
+    if list_freg[3]=="false":
+        FAKEHOST_ENABLE=False
+    else:
+        FAKEHOST_ENABLE=True
+        HOST1_DOMAIN=list_freg[4]
+        HOST2_DOMAIN=list_freg[4]
+    if list_freg[5]=="false":
+        MUX_ENABLE=False
+    else:
+        MUX_ENABLE=True
+    CONCURRENCY=int(list_freg[6])
+    if list_freg[7]=="false":
+        FRAGMENT=False
+    else:
+        FRAGMENT=True
+    if list_freg[8]=="false":
+        IS_WARP_ON_WARP=False
+    else:
+        IS_WARP_ON_WARP=True
+        WARPONWARP=urllib.parse.unquote(list_freg[9])
+    with open("client_set","r") as f:
+        client_set=f.readlines()
+        client_set=remove_empty_strings(client_set)
+        client_set=[line.strip() for line in client_set]
+    ENABLELOCALDNS=client_set[1]=="true"
+    ENABLEFAKEDNS=client_set[2]=="true"
+    LOCALDNSPORT=client_set[3]
+    ALLOWINCREASE=client_set[4]=="true"
+    DOMAINSTRATEGY=client_set[5]
+    CUSTOMRULES_PROXY=client_set[6].split(",")
+    CUSTOMRULES_DIRECT=client_set[7].split(",")
+    CUSTOMRULES_BLOCKED=client_set[8].split(",")
+    SOCKS5=int(client_set[9])
+    HTTP5=int(client_set[10])
+    REMOTEDNS=client_set[11]
+    DOMESTICDNS=client_set[12]
+    LOGLEVEL=client_set[13]
+    SNIFFING=client_set[15] =="true"
     is_warp=False
     class V2rayConfig:
         def __init__(self, remarks: Optional[str] = None, stats: Optional[Any] = None, log: 'LogBean' = None,
