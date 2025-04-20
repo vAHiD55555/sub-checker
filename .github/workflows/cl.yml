@@ -40,7 +40,7 @@ jobs:
             cl-
 
       - name: Install dependencies
-        run: pip install requests psutil retrying retrying
+        run: pip install requests psutil retrying PyYaml
 
       - name: update
         run: python cl.py
