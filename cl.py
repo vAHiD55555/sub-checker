@@ -370,16 +370,13 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
         LENGTH=fragment_sets["length"]
         INTERVAL=fragment_sets["interval"]
         FAKEHOST_ENABLE= fake_host_sets["enabled"]
-        if FAKEHOST_ENABLE:
-            HOST1_DOMAIN=fake_host_sets["domain"]
-            HOST2_DOMAIN=HOST1_DOMAIN
+        HOST1_DOMAIN=fake_host_sets["domain"]
+        HOST2_DOMAIN=HOST1_DOMAIN
         MUX_ENABLE= mux_sets["enabled"]
-        if MUX_ENABLE:
-            CONCURRENCY=mux_sets["concurrency"]
+        CONCURRENCY=mux_sets["concurrency"]
         FRAGMENT= fragment_sets["enabled"]
         IS_WARP_ON_WARP= warp_sets["enabled"]
-        if IS_WARP_ON_WARP:
-            WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
+        WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
         ENABLELOCALDNS = dns_sets["enabled"]
         ENABLEFAKEDNS = dns_sets["fake_dns_enabled"]
         LOCALDNSPORT = dns_sets["local_port"]
