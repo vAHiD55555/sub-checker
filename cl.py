@@ -1351,13 +1351,21 @@ def ping_all():
         hy=subprocess.Popen (['hy2/hysteria', 'client' ,'-c' , path_file], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         process_manager.add_process(f"hysteria_{t}", hy.pid)
     def load_config():
-        with open(TEXT_PATH, "r") as f:
+        try:
+            with open(TEXT_PATH, "r") as f:
                 try:
-                    file=json.load(f)
-                    return file, True
-                except Exception:
-                    file=f.readlines()
-                    return remove_empty_strings(file), False
+                    content = f.read()
+                    file_data = json.loads(content)
+                    return file_data, True
+                except json.JSONDecodeError:
+                    lines = content.splitlines()
+                    return [line for line in lines if line.strip()], False
+        except FileNotFoundError:
+            print(f"ERROR: File not found at {TEXT_PATH}")
+            return [], False
+        except Exception as e:
+            print(f"ERROR: Unexpected error loading config from {TEXT_PATH}: {e}")
+            return [], False
     def update_ip_addresses(input_dict,t):
         def update_value(value):
             if isinstance(value, str):
