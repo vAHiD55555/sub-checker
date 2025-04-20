@@ -1306,6 +1306,7 @@ def ping_all():
             return value
         return {key: update_value(value) for key, value in input_dict.items()}
     def process_ping(i:str, t,counter=2) :
+        print(i)
         path_test_file=f"xray/config_test_ping{'' if t==0 else str(t)}.json"
         hy2_path_test_file=f"hy2/config{'' if t==0 else str(t)}.yaml"
         result="-1"
