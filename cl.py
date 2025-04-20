@@ -19,6 +19,7 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
+cn=0
 with open("client_set","r") as file_client_set:
         f=file_client_set.readlines()
         test_link_=f[14].strip()
@@ -38,7 +39,6 @@ class ProcessManager:
         self.active_processes = {}  # دیکشنری برای نگهداری نام پردازش و PID آن
         self.lock = threading.Lock() # برای جلوگیری از تداخل در دسترسی به دیکشنری از تردها
         print("ProcessManager initialized.")
-
     def add_process(self, name: str, pid: int):
         """یک پردازش جدید را به لیست مدیریت‌شده اضافه می‌کند."""
         with self.lock:
@@ -46,7 +46,6 @@ class ProcessManager:
                 print(f"Warning: Process name '{name}' already exists with PID {self.active_processes[name]}. Overwriting with new PID {pid}.")
             print(f"Tracking process '{name}' with PID {pid}.")
             self.active_processes[name] = pid
-
     def stop_process(self, name: str):
         """یک پردازش مشخص را با نام آن متوقف می‌کند."""
         pid_to_stop = None
@@ -58,27 +57,22 @@ class ProcessManager:
             else:
                 print(f"Process '{name}' not found in active processes list for stopping.")
                 return # پردازشی با این نام برای توقف وجود ندارد
-
         if pid_to_stop is None:
              # این حالت نباید رخ دهد اما برای اطمینان بررسی می‌شود
              print(f"Error: Could not retrieve PID for '{name}' despite being found initially.")
              return
-
         try:
             # ابتدا بررسی می‌کنیم آیا پردازش هنوز وجود دارد
             if psutil.pid_exists(pid_to_stop):
                 print(f"  Sending SIGTERM (polite request) to PID {pid_to_stop}...")
                 os.kill(pid_to_stop, signal.SIGTERM)
-
                 # کمی صبر می‌کنیم تا پردازش فرصت خاتمه‌ی آرام داشته باشد
                 time.sleep(0.5) # می‌توانید این زمان را در صورت نیاز تنظیم کنید
-
                 # دوباره بررسی می‌کنیم
                 if psutil.pid_exists(pid_to_stop):
                     print(f"  PID {pid_to_stop} still exists after SIGTERM. Sending SIGKILL (force kill)...")
                     os.kill(pid_to_stop, signal.SIGKILL)
                     time.sleep(0.1) # انتظار کوتاه بعد از SIGKILL
-
                     # بررسی نهایی
                     if psutil.pid_exists(pid_to_stop):
                         # اگر حتی بعد از SIGKILL هم وجود داشت، مشکلی وجود دارد
@@ -90,7 +84,6 @@ class ProcessManager:
             else:
                 # اگر قبل از تلاش ما از بین رفته بود
                 print(f"  Process with PID {pid_to_stop} was already gone before stop attempt.")
-
         except (ProcessLookupError, psutil.NoSuchProcess):
             # اگر بین بررسی وجود و ارسال سیگنال، پردازش از بین برود
             print(f"  Process with PID {pid_to_stop} disappeared during termination attempt.")
@@ -101,7 +94,6 @@ class ProcessManager:
         except Exception as e:
             # برای خطاهای غیرمنتظره دیگر
             print(f"  ERROR: An unexpected error occurred while stopping PID {pid_to_stop}: {e}")
-
     def stop_all(self):
         """تمام پردازش‌های مدیریت‌شده را متوقف می‌کند."""
         print("Stopping all tracked processes...")
@@ -109,22 +101,17 @@ class ProcessManager:
         names_to_stop = []
         with self.lock:
              names_to_stop = list(self.active_processes.keys())
-
         if not names_to_stop:
             print("No active processes were being tracked.")
             return
-
         print(f"Found {len(names_to_stop)} processes to stop: {names_to_stop}")
         for name in names_to_stop:
              # تابع stop_process خودش قفل‌گذاری و حذف از لیست را انجام می‌دهد
              self.stop_process(name)
-
         print("Finished stopping all tracked processes.")
 process_manager = ProcessManager()
 xray_abs="xray/xray"
-
 def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # nuitka: pragma: no cover
-
     @dataclass
     class ConfigParams:
         protocol: str
@@ -1354,6 +1341,7 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     data_conf=json.dumps(data_conf, indent=4, cls=MyEncoder)
     return data_conf
 def ping_all():
+    print("igo")
     xray_abs = os.path.abspath("xray/xray")
     def s_xray(conf_path,t):
         proc=subprocess.Popen([xray_abs, 'run', '-c', conf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -1381,6 +1369,7 @@ def ping_all():
             return value
         return {key: update_value(value) for key, value in input_dict.items()}
     def process_ping(i:str, t,counter=2) :
+        global cn
         print(i)
         path_test_file=f"xray/config_test_ping{'' if t==0 else str(t)}.json"
         hy2_path_test_file=f"hy2/config{'' if t==0 else str(t)}.yaml"
@@ -1445,6 +1434,7 @@ def ping_all():
     copy_in_sus_nms=sun_nms
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(process_ping, i, t) for t, i in enumerate(sun_nms)]
+    print("ifin: " + str(cn))
     if is_dict:
         with open(TEXT_PATH, "w") as f:
             json.dump(copy_in_sus_nms, f, indent=2, ensure_ascii=False)
@@ -1454,11 +1444,13 @@ def ping_all():
 ping_all()
 with open(FIN_PATH,"w") as f:
     try:
-        if isinstance(FIN_CONF[0],dict):
-            json.dump(FIN_CONF,f)
+        if FIN_CONF:
+            if isinstance(FIN_CONF[0], dict):
+                json.dump(FIN_CONF, f, indent=2, ensure_ascii=False)
+            else:
+                f.writelines(f"{line.strip()}\n" for line in FIN_CONF if line.strip())
         else:
-            f.writelines(FIN_CONF)
+            print(f"No successful configs found. Writing empty {FIN_PATH}.")
     except Exception as e:
-        print(f"Error writing to {FIN_PATH}: {e}")
-
+        print(f"Unexpected error writing to {FIN_PATH}: {e}")
 exit()
