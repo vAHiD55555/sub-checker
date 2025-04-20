@@ -1376,9 +1376,7 @@ def ping_all():
     else:
         with open(TEXT_PATH, "w") as f:
             f.writelines(f"{line}\n" for line in copy_in_sus_nms)
-def run():
-    threading.Thread(target=ping_all).start()
-run()
+ping_all()
 with open(FIN_PATH,"w") as f:
     try:
         if isinstance(FIN_CONF[0],dict):
