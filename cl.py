@@ -1359,7 +1359,8 @@ def ping_all():
                 result = pingg()
             except Exception:
                 result = "-1"
-            FIN_CONF.append(i)
+            if result !="-1":
+                FIN_CONF.append(i)
             if not is_dict:
                 if i.startswith("hy2://") or i.startswith("hysteria2://"):
                     process_manager.stop_process(f"hysteria_{t}")
