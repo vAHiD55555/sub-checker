@@ -1377,8 +1377,11 @@ def ping_all():
             f.writelines(f"{line}\n" for line in copy_in_sus_nms)
 threading.Thread(target=ping_all).start()
 with open(FIN_PATH,"w") as f:
-    if isinstance(FIN_CONF[0],dict):
-        json.dump(FIN_CONF,f)
-    else:
-        f.writelines(FIN_CONF)
+    try:
+        if isinstance(FIN_CONF[0],dict):
+            json.dump(FIN_CONF,f)
+        else:
+            f.writelines(FIN_CONF)
+    except Exception:
+        pass
 exit()
