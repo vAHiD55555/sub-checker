@@ -27,6 +27,7 @@ TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
 def remove_empty_strings(input_list):
+    # این تابع خطوطی که فقط newline هستن ('\n') یا رشته خالی هستن رو حذف می‌کنه
     return [item for item in input_list if item and item != "\n" ]
 with open(TEXT_PATH,"r") as f:
     conf=remove_empty_strings(f.readlines())
