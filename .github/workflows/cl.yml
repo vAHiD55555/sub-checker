@@ -41,6 +41,10 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests psutil retrying PyYaml
+      - name: Set execute permissions
+        run: |
+          chmod +x xray/xray
+          chmod +x hy2/hysteria
 
       - name: update
         run: python cl.py
