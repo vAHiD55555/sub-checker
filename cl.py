@@ -354,53 +354,47 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     TLS = "tls"
     REALITY = "reality"
     HTTP = "http"
-    with open(CONF_PATH,"r") as f:
-        file=json.load(f)
-    core=file['core']
-    warp_sets = file['warp_on_warp']
-    fragment_sets=core["fragment"]
-    fake_host_sets =core["fake_host"]
-    mux_sets= core["mux"]
-    dns_sets = core["dns"]
-    routing_sets = core["routing_rules"]
-    inbound_ports = core["inbound_ports"]
-    PACKETS=fragment_sets["packets"]
-    LENGTH=fragment_sets["length"]
-    INTERVAL=fragment_sets["interval"]
-    if fake_host_sets["enabled"]:
-        FAKEHOST_ENABLE=False
-    else:
-        FAKEHOST_ENABLE=True
-        HOST1_DOMAIN=fake_host_sets["domain"]
-        HOST2_DOMAIN=HOST1_DOMAIN
-    if mux_sets["enabled"]:
-        MUX_ENABLE=False
-    else:
-        MUX_ENABLE=True
-        CONCURRENCY=mux_sets["concurrency"]
-    if fragment_sets["enabled"]:
-        FRAGMENT=False
-    else:
-        FRAGMENT=True
-    if warp_sets["enabled"]:
-        IS_WARP_ON_WARP=False
-    else:
-        IS_WARP_ON_WARP=True
-        WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
-    ENABLELOCALDNS = dns_sets["enabled"]
-    ENABLEFAKEDNS = dns_sets["fake_dns_enabled"]
-    LOCALDNSPORT = dns_sets["local_port"]
-    ALLOWINCREASE = core["allow_insecure_tls"]
-    DOMAINSTRATEGY = core["domain_strategy"]
-    CUSTOMRULES_PROXY = routing_sets["proxy",]
-    CUSTOMRULES_DIRECT = routing_sets["direct"]
-    CUSTOMRULES_BLOCKED = routing_sets["block"]
-    SOCKS5 = inbound_ports["socks"]
-    HTTP5 = inbound_ports["http"]
-    REMOTEDNS = dns_sets["remote_server"]
-    DOMESTICDNS = dns_sets["domestic_server"]
-    LOGLEVEL = core["log_level"]
-    SNIFFING = core["sniffing_enabled"]
+    try:
+        with open(CONF_PATH,"r") as f:
+            file=json.load(f)
+        core=file['core']
+        warp_sets = file['warp_on_warp']
+        fragment_sets=core["fragment"]
+        fake_host_sets =core["fake_host"]
+        mux_sets= core["mux"]
+        dns_sets = core["dns"]
+        routing_sets = core["routing_rules"]
+        inbound_ports = core["inbound_ports"]
+        PACKETS=fragment_sets["packets"]
+        LENGTH=fragment_sets["length"]
+        INTERVAL=fragment_sets["interval"]
+        FAKEHOST_ENABLE= fake_host_sets["enabled"]
+        if FAKEHOST_ENABLE:
+            HOST1_DOMAIN=fake_host_sets["domain"]
+            HOST2_DOMAIN=HOST1_DOMAIN
+        MUX_ENABLE= mux_sets["enabled"]
+        if MUX_ENABLE:
+            CONCURRENCY=mux_sets["concurrency"]
+        FRAGMENT= fragment_sets["enabled"]
+        IS_WARP_ON_WARP= warp_sets["enabled"]
+        if IS_WARP_ON_WARP:
+            WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
+        ENABLELOCALDNS = dns_sets["enabled"]
+        ENABLEFAKEDNS = dns_sets["fake_dns_enabled"]
+        LOCALDNSPORT = dns_sets["local_port"]
+        ALLOWINCREASE = core["allow_insecure_tls"]
+        DOMAINSTRATEGY = core["domain_strategy"]
+        CUSTOMRULES_PROXY = routing_sets["proxy"].split(",")
+        CUSTOMRULES_DIRECT = routing_sets["direct"].split(",")
+        CUSTOMRULES_BLOCKED = routing_sets["block"].split(",")
+        SOCKS5 = inbound_ports["socks"]
+        HTTP5 = inbound_ports["http"]
+        REMOTEDNS = dns_sets["remote_server"]
+        DOMESTICDNS = dns_sets["domestic_server"]
+        LOGLEVEL = core["log_level"]
+        SNIFFING = core["sniffing_enabled"]
+    except Exception as E:
+        print(E)
     is_warp=False
     class V2rayConfig:
         def __init__(self, remarks: Optional[str] = None, stats: Optional[Any] = None, log: 'LogBean' = None,
