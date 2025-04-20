@@ -19,55 +19,13 @@ import base64
 import urllib.parse
 import urllib.request
 import signal
+CONF_PATH="config.json"
 TEXT_PATH="normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
-CONFIG_PATH = "config.json"
-
-# --- خواندن کانفیگ از JSON ---
-try:
-    # اطمینان از وجود فایل کانفیگ یا ایجاد دیفالت
-    if not os.path.exists(CONFIG_PATH):
-        print(f"WARN: Configuration file {CONFIG_PATH} not found. Creating default.")
-        default_config = {
-            "core": {
-              "test_url": "http://www.gstatic.com/generate_204",
-              "log_level": "warning",
-              "domain_strategy": "IPIFNonMatch",
-              "allow_insecure_tls": False,
-              "sniffing_enabled": True,
-              "inbound_ports": { "socks": 10808, "http": 10809 },
-              "dns": {
-                "enabled": True, "fake_dns_enabled": True, "local_port": 10853,
-                "remote_server": "https://8.8.8.8/dns-query", "domestic_server": "1.1.1.2"
-              },
-              "routing_rules": { "proxy": [], "direct": [], "block": [] },
-              "fragment": { "enabled": True, "packets": "tlshello", "length": "10-30", "interval": "1-5" },
-              "fake_host": { "enabled": False, "domain": "cloudflare.com" },
-              "mux": { "enabled": False, "concurrency": 8 }
-            },
-            "warp_on_warp": { "enabled": False, "config_url": "" }
-          }
-        with open(CONFIG_PATH, "w", encoding='utf-8') as f_default:
-            json.dump(default_config, f_default, indent=2)
-        config_data = default_config
-        print(f"INFO: Default configuration file created at {CONFIG_PATH}")
-    else:
-        with open(CONFIG_PATH, "r", encoding='utf-8') as f:
-            config_data = json.load(f)
-            print(f"INFO: Configuration loaded from {CONFIG_PATH}")
-except Exception as E:
-    print(E)
-
-# --- استخراج تنظیمات اصلی ---
-core_settings = config_data.get("core", {})
-warp_settings = config_data.get("warp_on_warp", {})
-
-# --- تعریف متغیرهای گلوبال مورد نیاز از کانفیگ ---
-# test_link_ رو اینجا تعریف می‌کنیم تا در کل اسکریپت قابل استفاده باشه
-test_link_ = core_settings.get("test_url", "http://www.gstatic.com/generate_204")
-is_use_freg = core_settings.get("fragment", {}).get("enabled", True) # مقدار اولیه is_use_freg
-is_use_warp = warp_settings.get("enabled", False) # مقدار اولیه is_use_warp
+with open(CONF_PATH,"r") as f:
+    file=json.load(f)
+    test_link_=file["core"]["test_url"]
 
 def remove_empty_strings(input_list):
     return [item for item in input_list if item and item != "\n" ]
@@ -141,7 +99,6 @@ class ProcessManager:
 process_manager = ProcessManager()
 xray_abs="xray/xray"
 def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # nuitka: pragma: no cover
-    global config_data
     @dataclass
     class ConfigParams:
         protocol: str
@@ -398,42 +355,54 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     TLS = "tls"
     REALITY = "reality"
     HTTP = "http"
-    core_sets = config_data.get("core", {})
-    warp_sets = config_data.get("warp_on_warp", {})
-    fragment_sets = core_sets.get("fragment", {})
-    fake_host_sets = core_sets.get("fake_host", {})
-    mux_sets = core_sets.get("mux", {})
-    dns_sets = core_sets.get("dns", {})
-    routing_sets = core_sets.get("routing_rules", {})
-    inbound_ports = core_sets.get("inbound_ports", {})
+    with open(CONF_PATH,"r") as f:
+        file=json.load(f)
+    core=file['core']
+    warp_sets = file['warp_on_warp']
+    fragment_sets=core["fragment"]
+    fake_host_sets =core["fake_host"]
+    mux_sets= core["mux"]
+    dns_sets = core["dns"]
+    routing_sets = core["routing_rules"]
+    inbound_ports = core["inbound_ports"]
+    PACKETS=fragment_sets["packets"]
+    LENGTH=fragment_sets["length"]
+    INTERVAL=fragment_sets["interval"]
+    if fake_host_sets["enabled"]:
+        FAKEHOST_ENABLE=False
+    else:
+        FAKEHOST_ENABLE=True
+        HOST1_DOMAIN=fake_host_sets["domain"]
+        HOST2_DOMAIN=HOST1_DOMAIN
+    if mux_sets["enabled"]:
+        MUX_ENABLE=False
+    else:
+        MUX_ENABLE=True
+    CONCURRENCY=mux_sets["concurrency"]
+    if fragment_sets["enabled"]:
+        FRAGMENT=False
+    else:
+        FRAGMENT=True
+    if warp_sets["enabled"]:
+        IS_WARP_ON_WARP=False
+    else:
+        IS_WARP_ON_WARP=True
+        WARPONWARP=urllib.parse.unquote(warp_sets["config_url"])
+    ENABLELOCALDNS = dns_sets["enabled"]
+    ENABLEFAKEDNS = dns_sets["fake_dns_enabled"]
+    LOCALDNSPORT = dns_sets["local_port"]
+    ALLOWINCREASE = core["allow_insecure_tls"]
+    DOMAINSTRATEGY = core["domain_strategy"]
+    CUSTOMRULES_PROXY = routing_sets["proxy",]
+    CUSTOMRULES_DIRECT = routing_sets["direct"]
+    CUSTOMRULES_BLOCKED = routing_sets["block"]
+    SOCKS5 = inbound_ports["socks"]
+    HTTP5 = inbound_ports["http"]
+    REMOTEDNS = dns_sets["remote_server"]
+    DOMESTICDNS = dns_sets["domestic_server"]
+    LOGLEVEL = core["log_level"]
+    SNIFFING = core["sniffing_enabled"]
 
-    # --- استخراج مقادیر تنظیمات ---
-    PACKETS = fragment_sets.get("packets", "tlshello")
-    LENGTH = fragment_sets.get("length", "10-30") # دیفالت از JSON
-    INTERVAL = fragment_sets.get("interval", "1-5") # دیفالت از JSON
-    FAKEHOST_ENABLE = fake_host_sets.get("enabled", False)
-    HOST1_DOMAIN = fake_host_sets.get("domain", "cloudflare.com")
-    HOST2_DOMAIN = HOST1_DOMAIN
-    MUX_ENABLE = mux_sets.get("enabled", False)
-    CONCURRENCY = mux_sets.get("concurrency", 8)
-    FRAGMENT = fragment_sets.get("enabled", True)
-    IS_WARP_ON_WARP = warp_sets.get("enabled", False)
-    WARPONWARP = warp_sets.get("config_url", "")
-
-    ENABLELOCALDNS = dns_sets.get("enabled", True)
-    ENABLEFAKEDNS = dns_sets.get("fake_dns_enabled", True)
-    LOCALDNSPORT = dns_sets.get("local_port", 10853)
-    ALLOWINCREASE = core_sets.get("allow_insecure_tls", False)
-    DOMAINSTRATEGY = core_sets.get("domain_strategy", "IPIFNonMatch")
-    CUSTOMRULES_PROXY = routing_sets.get("proxy", [])
-    CUSTOMRULES_DIRECT = routing_sets.get("direct", [])
-    CUSTOMRULES_BLOCKED = routing_sets.get("block", [])
-    SOCKS5 = inbound_ports.get("socks", 10808)
-    HTTP5 = inbound_ports.get("http", 10809)
-    REMOTEDNS = dns_sets.get("remote_server", "https://8.8.8.8/dns-query")
-    DOMESTICDNS = dns_sets.get("domestic_server", "1.1.1.2")
-    LOGLEVEL = core_sets.get("log_level", "warning")
-    SNIFFING = core_sets.get("sniffing_enabled", True)
     is_warp=False
     class V2rayConfig:
         def __init__(self, remarks: Optional[str] = None, stats: Optional[Any] = None, log: 'LogBean' = None,
