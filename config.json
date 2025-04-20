@@ -17,12 +17,9 @@
         "domestic_server": "1.1.1.2"
       },
       "routing_rules": {
-        "proxy": [
-        ],
-        "direct": [
-        ],
-        "block": [
-        ]
+        "proxy": "",
+        "direct": "",
+        "block": ""
       },
       "fragment": {
         "enabled": true,
