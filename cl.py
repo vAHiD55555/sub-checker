@@ -24,7 +24,8 @@ CONF_PATH="config.json"
 with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
         test_link_=f["core"]["test_url"]
-TEXT_PATH="https://raw.githubusercontent.com/mrdani13/sub-checker/refs/heads/main/normal.txt"
+TEXT_PATH="normal.txt"
+LINk_PATH="https://raw.githubusercontent.com/mrdani13/sub-checker/refs/heads/main/normal.txt"
 FIN_PATH="final.txt"
 FIN_CONF=[]
 def remove_empty_strings(input_list):
@@ -1428,15 +1429,14 @@ def ping_all():
     else:
         with open(TEXT_PATH, "w") as f:
             f.writelines(f"{line}\n" for line in copy_in_sus_nms)
-if TEXT_PATH.startswith("http://") or TEXT_PATH.startswith("https://"):
-        response = requests.get(TEXT_PATH, timeout=15)
+if LINk_PATH.startswith("http://") or LINk_PATH.startswith("https://"):
+        response = requests.get(LINk_PATH, timeout=15)
         response.raise_for_status()
         try:
             json_data = response.json()
             content_to_write = json.dumps(json_data, indent=4, ensure_ascii=False)
         except requests.exceptions.JSONDecodeError:
             content_to_write = response.text
-        TEXT_PATH="normal.txt"
         with open(TEXT_PATH, "w") as f:
             f.write(content_to_write)
 ping_all()
