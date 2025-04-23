@@ -25,7 +25,7 @@ with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
         test_link_=f["core"]["test_url"]
 TEXT_PATH="normal.txt"
-LINK_PATH=""
+LINK_PATH=["https://raw.githubusercontent.com/mrdani13/sub-checker/refs/heads/main/normal.txt"] # [ "link1" , "link2" , ... ]
 FIN_PATH="final.txt"
 FIN_CONF=[]
 def remove_empty_strings(input_list):
@@ -1429,16 +1429,18 @@ def ping_all():
     else:
         with open(TEXT_PATH, "w") as f:
             f.writelines(f"{line}\n" for line in copy_in_sus_nms)
-if LINK_PATH.startswith("http://") or LINK_PATH.startswith("https://"):
-        response = requests.get(LINK_PATH, timeout=15)
-        response.raise_for_status()
-        try:
-            json_data = response.json()
-            content_to_write = json.dumps(json_data, indent=4, ensure_ascii=False)
-        except requests.exceptions.JSONDecodeError:
-            content_to_write = response.text
-        with open(TEXT_PATH, "w") as f:
-            f.write(content_to_write)
+if  len(LINK_PATH) != 0:
+    for link  in LINK_PATH:
+        if link.startswith("http://") or link.startswith("https://"):
+                response = requests.get(link, timeout=15)
+                response.raise_for_status()
+                try:
+                    json_data = response.json()
+                    content_to_write = json.dumps(json_data, indent=4, ensure_ascii=False)
+                except requests.exceptions.JSONDecodeError:
+                    content_to_write = response.text
+                with open(TEXT_PATH, "w") as f:
+                    f.write(content_to_write)
 ping_all()
 with open(FIN_PATH,"w") as f:
     try:
