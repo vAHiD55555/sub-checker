@@ -1,4 +1,4 @@
-name: ch
+name: without-timer
 
 on:
   # فقط روی push به شاخه main اجرا شود
