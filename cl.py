@@ -1326,22 +1326,45 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     data_conf=replace_accept_encoding(data_conf)
     data_conf=json.dumps(data_conf, indent=4, cls=MyEncoder)
     return data_conf
-def check_ipv6() -> List[str]:
-    results = {"ipv4": "Unavailable", "ipv6": "Unavailable"}
+def get_public_ipv4() -> Optional[str]:
+    """
+     تلاش می‌کند آدرس عمومی IPv4 را با استفاده از سرویس خارجی دریافت کند.
+
+    Returns:
+        Optional[str]: آدرس عمومی IPv4 به صورت رشته در صورت یافتن، در غیر این صورت None.
+    """
+    ip_address_v4: Optional[str] = None # متغیری برای ذخیره IP یافت شده
     timeout = 10
-    urls = {
-        "ipv4": "http://v4.ipv6-test.com/api/myip.php",
-        "ipv6": "http://v6.ipv6-test.com/api/myip.php"
-    }
-    with requests.Session() as session:
-        for version in urls:
-            try:
-                response = session.get(urls[version], timeout=timeout)
-                response.raise_for_status()
-                results[version] = "Available"
-            except (requests.RequestException, requests.Timeout):
-                pass
-    return [results["ipv4"], results["ipv6"]]
+    url_v4 = "http://v4.ipv6-test.com/api/myip.php" # فقط به این URL نیاز داریم
+
+    print("Attempting to fetch public IPv4 address...")
+    try:
+        # فقط درخواست IPv4 را ارسال می‌کنیم
+        response = requests.get(url_v4, timeout=timeout)
+        response.raise_for_status()  # بررسی خطاهای HTTP (مثل 4xx, 5xx)
+
+        # متن پاسخ را می‌خوانیم و فضاهای خالی احتمالی را حذف می‌کنیم
+        ip_address_v4 = response.text.strip()
+
+        # بررسی می‌کنیم که آیا پاسخ خالی است یا نه
+        if not ip_address_v4:
+            print("Warning: IPv4 API returned an empty response.")
+            ip_address_v4 = None # اگر خالی بود، None در نظر می‌گیریم
+        else:
+            print(f"Successfully fetched IPv4: {ip_address_v4}")
+
+    except requests.exceptions.Timeout:
+        print("Fetching IPv4 address timed out.")
+        ip_address_v4 = None # در صورت تایم‌اوت None برمی‌گردانیم
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching IPv4 address: {e}")
+        ip_address_v4 = None # در صورت خطای دیگر None برمی‌گردانیم
+    except Exception as e:
+        print(f"An unexpected error occurred fetching IPv4: {e}")
+        ip_address_v4 = None # برای خطاهای پیش‌بینی نشده
+
+    # فقط آدرس IPv4 (یا None) را برمی‌گردانیم
+    return ip_address_v4
 def get_ip_details(ip_address):
     try:
         response = requests.get(f'http://ip-api.com/json/{ip_address}', timeout=10)
@@ -1444,7 +1467,7 @@ def ping_all():
                 FIN_CONF.append(i)
                 if CHECK_LOC:
                     with open(CHECK_RES, "a") as f:
-                        f.write(get_ip_details(check_ipv6()[0])+"\n")
+                        f.write(get_ip_details(get_public_ipv4())+"\n")
             if not is_dict:
                 if i.startswith("hy2://") or i.startswith("hysteria2://"):
                     process_manager.stop_process(f"hysteria_{t}")
