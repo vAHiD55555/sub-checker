@@ -58,15 +58,20 @@ jobs:
       # ----- مراحل کامیت و پوش کردن نتایج -----
       - name: Commit and Push changes
         run: |
-          # بررسی اینکه آیا فایلی تغییر کرده است (مثلا final.txt)
-          # اینجا باید نام فایلی که توسط cl.py تولید و آپدیت میشه رو بذاری
-          TARGET_FILE="final.txt" # <--- نام فایل خروجی اسکریپت پایتون
+          # نام فایل‌های خروجی که می‌خواهید کامیت شوند
+          FILE1="final.txt"
+          FILE2="loc.txt"
 
-          if [[ -n $(git status --porcelain $TARGET_FILE) ]]; then
-            echo "Changes detected in $TARGET_FILE. Committing..."
-            git add $TARGET_FILE
-            git commit -m "chore: Update $TARGET_FILE [skip ci]" # [skip ci] از اجرای دوباره ورک‌فلو جلوگیری می‌کند
+          # بررسی اینکه آیا در *هر کدام* از فایل‌ها تغییری وجود دارد
+          # git status --porcelain بدون آرگومان همه تغییرات را لیست می‌کند
+          if [[ -n $(git status --porcelain $FILE1 $FILE2) ]]; then
+            echo "Changes detected in $FILE1 or $FILE2. Committing..."
+            # --- هر دو فایل را اضافه کنید ---
+            git add $FILE1 $FILE2
+            # -------------------------------
+            # پیام کامیت را کمی عمومی‌تر کنید
+            git commit -m "chore: Update results ($FILE1, $FILE2) [skip ci]"
             git push origin HEAD:main
           else
-            echo "No changes in $TARGET_FILE detected. Nothing to commit."
+            echo "No changes detected in $FILE1 or $FILE2. Nothing to commit."
           fi
