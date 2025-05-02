@@ -48,10 +48,9 @@ jobs:
 
       - name: Set execute permissions
         run: |
-          # فقط اگه فایل اجرایی داری اینا رو بذار
-          # chmod +x xray/xray
-          # chmod +x hy2/hysteria
-          echo "Skipping chmod as files might not exist or be needed" # پیام برای لاگ
+          chmod +x xray/xray
+          chmod +x hy2/hysteria
+
 
       - name: Run checker script
         run: python cl.py # <--- اسکریپت اصلی پایتون شما
