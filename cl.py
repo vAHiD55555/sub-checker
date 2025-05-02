@@ -25,9 +25,14 @@ with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
         test_link_=f["core"]["test_url"]
 TEXT_PATH="normal.txt"
-LINK_PATH=[] # [ "link1" , "link2" , ... ]
+LINK_PATH=["https://raw.githubusercontent.com/mrdani13/sub-checker/refs/heads/main/normal.txt"] # [ "link1" , "link2" , ... ]
 FIN_PATH="final.txt"
 FIN_CONF=[]
+CHECK_LOC=False
+CHECK_RES="loc.txt"
+if CHECK_LOC:
+    with open(CHECK_RES, "w") as f:
+        f.write("")
 def remove_empty_strings(input_list):
     return [item for item in input_list if item and item != "\n" ]
 with open(TEXT_PATH,"r") as f:
@@ -1321,6 +1326,28 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     data_conf=replace_accept_encoding(data_conf)
     data_conf=json.dumps(data_conf, indent=4, cls=MyEncoder)
     return data_conf
+def check_ipv6() -> List[str]:
+    results = {"ipv4": "Unavailable", "ipv6": "Unavailable"}
+    timeout = 10
+    urls = {
+        "ipv4": "http://v4.ipv6-test.com/api/myip.php",
+        "ipv6": "http://v6.ipv6-test.com/api/myip.php"
+    }
+    with requests.Session() as session:
+        for version in urls:
+            try:
+                response = session.get(urls[version], timeout=timeout)
+                response.raise_for_status()
+                results[version] = "Available"
+            except (requests.RequestException, requests.Timeout):
+                pass
+    return [results["ipv4"], results["ipv6"]]
+def get_ip_details(ip_address):
+    try:
+        response = requests.get(f'http://ip-api.com/json/{ip_address}', timeout=10)
+        return response.json().get('countryCode', 'None')
+    except Exception:
+        return 'None'
 def ping_all():
     print("igo")
     xray_abs = os.path.abspath("xray/xray")
@@ -1415,6 +1442,9 @@ def ping_all():
                 result = "-1"
             if result !="-1":
                 FIN_CONF.append(i)
+                if CHECK_LOC:
+                    with open(CHECK_RES, "a") as f:
+                        f.write(get_ip_details(check_ipv6()[0])+"\n")
             if not is_dict:
                 if i.startswith("hy2://") or i.startswith("hysteria2://"):
                     process_manager.stop_process(f"hysteria_{t}")
