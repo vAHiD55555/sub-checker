@@ -59,17 +59,20 @@ jobs:
       # ----- مراحل جدید برای کامیت و پوش -----
       - name: Commit and Push changes
         run: |
-          # بررسی اینکه آیا فایلی تغییر کرده است یا نه
-          # --porcelain تغییرات را در قالبی مناسب برای اسکریپت نمایش می‌دهد
-          if [[ -n $(git status --porcelain final.txt) ]]; then
-            echo "Changes detected in final.txt. Committing..."
-            git add final.txt
-            # پیغام کامیت: [skip ci] باعث می‌شود این پوش، دوباره ورک‌فلو را اجرا نکند
-            git commit -m "chore: Update final.txt [skip ci]"
-            # پوش کردن به شاخه main در ریپازیتوری اصلی (origin)
-            # استفاده از HEAD:main مطمئن‌تر است
+          # نام فایل‌های خروجی که می‌خواهید کامیت شوند
+          FILE1="final.txt"
+          FILE2="loc.txt"
+
+          # بررسی اینکه آیا در *هر کدام* از فایل‌ها تغییری وجود دارد
+          # git status --porcelain بدون آرگومان همه تغییرات را لیست می‌کند
+          if [[ -n $(git status --porcelain $FILE1 $FILE2) ]]; then
+            echo "Changes detected in $FILE1 or $FILE2. Committing..."
+            # --- هر دو فایل را اضافه کنید ---
+            git add $FILE1 $FILE2
+            # -------------------------------
+            # پیام کامیت را کمی عمومی‌تر کنید
+            git commit -m "chore: Update results ($FILE1, $FILE2) [skip ci]"
             git push origin HEAD:main
           else
-            echo "No changes in final.txt detected. Nothing to commit."
+            echo "No changes detected in $FILE1 or $FILE2. Nothing to commit."
           fi
-        # این دستورات فقط در صورت تغییر فایل final.txt اجرا می‌شوند
