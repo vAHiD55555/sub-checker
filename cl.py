@@ -1327,7 +1327,7 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
     data_conf=replace_accept_encoding(data_conf)
     data_conf=json.dumps(data_conf, indent=4, cls=MyEncoder)
     return data_conf
-def get_public_ipv4() -> Optional[str]:
+def get_public_ipv4(t,port) -> Optional[str]:
     """
      تلاش می‌کند آدرس عمومی IPv4 را با استفاده از سرویس خارجی دریافت کند.
 
@@ -1335,13 +1335,20 @@ def get_public_ipv4() -> Optional[str]:
         Optional[str]: آدرس عمومی IPv4 به صورت رشته در صورت یافتن، در غیر این صورت None.
     """
     ip_address_v4: Optional[str] = None # متغیری برای ذخیره IP یافت شده
-    timeout = 10
+    timeout = 15
     url_v4 = "http://v4.ipv6-test.com/api/myip.php" # فقط به این URL نیاز داریم
-
+    proxy_host = f"127.0.0.{t}"
+    proxies = {
+        "http": f"http://{proxy_host}:{port}",
+        "https": f"http://{proxy_host}:{port}" # HTTPS requests also go through the HTTP proxy
+    }
+    headers = {
+        "Connection": "close" # Explicitly close connection
+    }
     print("Attempting to fetch public IPv4 address...")
     try:
         # فقط درخواست IPv4 را ارسال می‌کنیم
-        response = requests.get(url_v4, timeout=timeout)
+        response = requests.get(url_v4, timeout=timeout,proxies=proxies,headers=headers)
         response.raise_for_status()  # بررسی خطاهای HTTP (مثل 4xx, 5xx)
 
         # متن پاسخ را می‌خوانیم و فضاهای خالی احتمالی را حذف می‌کنیم
@@ -1470,7 +1477,7 @@ def ping_all():
                 FIN_CONF.append(i)
                 if CHECK_LOC:
                     with open(CHECK_RES, "a") as f:
-                        f.write(get_ip_details(f"127.0.0.{t+2}")+"\n")
+                        f.write(get_ip_details(get_public_ipv4(t+2,port))+"\n")
             if not is_dict:
                 if i.startswith("hy2://") or i.startswith("hysteria2://"):
                     process_manager.stop_process(f"hysteria_{t}")
