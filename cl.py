@@ -246,11 +246,11 @@ def parse_configs(conifg,num=0,cv=1,hy2_path="hy2/config.yaml",is_hy2=False): # 
         missing_padding = len(encoded_part) % 4
         if missing_padding:
             encoded_part += '=' * (4 - missing_padding)
+        decoded = base64.b64decode(encoded_part).decode("utf-8")
+        vmess_data = json.loads(decoded)
         address = vmess_data.get("add", "")
         port = vmess_data.get("port", 0)
         tag = vmess_data.get("ps", "none")
-        decoded = base64.b64decode(encoded_part).decode("utf-8")
-        vmess_data = json.loads(decoded)
         return ConfigParams(
             protocol=common.get("protocol",""),
             address=address,
