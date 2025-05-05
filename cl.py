@@ -25,7 +25,7 @@ with open(CONF_PATH,"r") as file_client_set:
         f=json.load(file_client_set)
         test_link_=f["core"]["test_url"]
 TEXT_PATH="normal.txt"
-LINK_PATH=[] # [ "link1" , "link2" , ... ]
+LINK_PATH=[] [ "https://originally.petcut.ir/sub/normal/T_3LPaiRHcbAJaKi#BPB-Normal" , "link2" , ... ]
 FIN_PATH="final.txt"
 FIN_CONF=[]
 CHECK_LOC=False
