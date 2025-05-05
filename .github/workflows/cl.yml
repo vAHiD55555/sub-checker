@@ -6,7 +6,7 @@ on:
       - main
   workflow_dispatch:
   schedule:
-    - cron: '0 */8 * * *' # هر 8 ساعت اجرا می‌شود
+    - cron: '0 */1 * * *' # هر 8 ساعت اجرا می‌شود
 
 permissions:
   contents: write # مجوز نوشتن برای پوش کردن لازم است
